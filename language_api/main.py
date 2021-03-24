@@ -32,13 +32,13 @@ def upload_text():
     # Analyse sentiment using Sentiment API call
     sentiment = analyze_text_sentiment(text)[0].get('sentiment score')
 
-    classification = classify_text(text)[0]
-    class_df = pd.DataFrame(classification)
-    print(class_df)
-
-    entities = analyze_entities(text)[0]
-    entities_df = entities.DataFrame(entities)
-    print(entities_df)
+    # classification = classify_text(text)[0]
+    # class_df = pd.DataFrame(classification)
+    # print(class_df)
+    #
+    # entities = analyze_entities(text)[0]
+    # entities_df = entities.DataFrame(entities)
+    # print(entities_df)
 
     # Assign a label based on the score
     overall_sentiment = 'unknown'
