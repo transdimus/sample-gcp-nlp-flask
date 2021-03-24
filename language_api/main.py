@@ -1,15 +1,16 @@
 from datetime import datetime
 import logging
 import os
-import pandas as pd
+from text_classify import classify_result
+from text_entities import analyze_entities
 from flask import Flask, redirect, render_template, request
 import json
 
 from google.cloud import datastore
 from google.cloud import language_v1 as language
 
-
 app = Flask(__name__)
+
 
 @app.route("/")
 def homepage():
@@ -30,16 +31,21 @@ def homepage():
 def upload_text():
     text = request.form["text"]
 
+    # Proposed approach to split the input text into lines and then analyze & visualize
+    # sentiment/classification per line
+    # Currently implemented in classify_result
+
+    classification_df = classify_result(text)
+    classification_df.plot(kind='bar', y='Confidence', x='Category')
+
+    entities_df = analyze_entities(text)
+    print(entities_df.loc[:, ('name', 'type', 'Salience')])
+    entities_df.groupby(['type']).sum(['Salience']).unstack().plot(kind='bar')
+
+    # End of Amar's Changes
+
     # Analyse sentiment using Sentiment API call
     sentiment = analyze_text_sentiment(text)[0].get('sentiment score')
-
-    # classification = classify_text(text)[0]
-    # class_df = pd.DataFrame(classification)
-    # print(class_df)
-    #
-    # entities = analyze_entities(text)[0]
-    # entities_df = entities.DataFrame(entities)
-    # print(entities_df)
 
     # Assign a label based on the score
     overall_sentiment = 'unknown'
@@ -111,13 +117,14 @@ def analyze_text_sentiment(text):
     # Get sentiment for all sentences in the document
     sentence_sentiment = []
     for sentence in response.sentences:
-        item={}
-        item["text"]=sentence.text.content
-        item["sentiment score"]=sentence.sentiment.score
-        item["sentiment magnitude"]=sentence.sentiment.magnitude
+        item = {}
+        item["text"] = sentence.text.content
+        item["sentiment score"] = sentence.sentiment.score
+        item["sentiment magnitude"] = sentence.sentiment.magnitude
         sentence_sentiment.append(item)
 
     return sentence_sentiment
+
 
 def sample_analyze_entity_sentiment(text_content):
     """
@@ -143,7 +150,7 @@ def sample_analyze_entity_sentiment(text_content):
     # Available values: NONE, UTF8, UTF16, UTF32
     encoding_type = language_v1.EncodingType.UTF8
 
-    response = client.analyze_entity_sentiment(request = {'document': document, 'encoding_type': encoding_type})
+    response = client.analyze_entity_sentiment(request={'document': document, 'encoding_type': encoding_type})
     # Loop through entitites returned from the API
     for entity in response.entities:
         print(u"Representative name for the entity: {}".format(entity.name))
@@ -177,16 +184,23 @@ def sample_analyze_entity_sentiment(text_content):
     print(u"Language of the text: {}".format(response.language))
 
 
-def classify_text(text):
-    client = language.LanguageServiceClient()
-    document = language.Document(content=text, type_=language.Document.Type.PLAIN_TEXT)
+@app.route("/ping", methods=["GET"])
+def ping():
+    return "i am alive.."
 
-    response = client.classify_text(document=document)
-    return response
+
+@app.route("/entities", methods=["GET", "POST"])
+def extract_entities():
+    if request.method == 'POST':
+        text = request.json['text']
+        return json.dumps(gcp_analyze_entities(text))
+    else:
+        text = request.args["text"]
+        return json.dumps(gcp_analyze_entities(text))
 
 
 # Entity Analysis
-def analyze_entities(text, debug=0):
+def gcp_analyze_entities(text, debug=0):
     """
     Analyzing Entities in a String
 
@@ -243,77 +257,6 @@ def analyze_entities(text, debug=0):
 
     return (output)
 
-@app.route("/ping", methods=["GET"])
-def ping():
-    return "i am alive.." 
-
-@app.route("/entities", methods=["GET", "POST"])
-def extract_entities():
-    if request.method == 'POST':
-      text = request.json['text']
-      return json.dumps(gcp_analyze_entities(text))
-    else:
-      text = request.args["text"]
-      return json.dumps(gcp_analyze_entities(text))
-
-    
-# Entity Analysis
-def gcp_analyze_entities(text, debug=0):
-    """
-    Analyzing Entities in a String
-
-    Args:
-      text_content The text content to analyze
-    """
-
-    client = language.LanguageServiceClient()
-    document = language.Document(content=text, type_=language.Document.Type.PLAIN_TEXT)
-    response = client.analyze_entities(document=document)
-    output = []   
-    
-    # Loop through entitites returned from the API
-    for entity in response.entities:
-        item = {}
-        item["name"]=entity.name
-        item["type"]=language.Entity.Type(entity.type_).name
-        item["Salience"]=entity.salience
-        
-        if debug:
-            print(u"Representative name for the entity: {}".format(entity.name))
-
-            # Get entity type, e.g. PERSON, LOCATION, ADDRESS, NUMBER, et al
-            print(u"Entity type: {}".format(language.Entity.Type(entity.type_).name))
-
-            # Get the salience score associated with the entity in the [0, 1.0] range
-            print(u"Salience score: {}".format(entity.salience))
-
-        # Loop over the metadata associated with entity. For many known entities,
-        # the metadata is a Wikipedia URL (wikipedia_url) and Knowledge Graph MID (mid).
-        # Some entity types may have additional metadata, e.g. ADDRESS entities
-        # may have metadata for the address street_name, postal_code, et al.
-        for metadata_name, metadata_value in entity.metadata.items():
-            item[metadata_name]=metadata_value
-            if debug:
-                print(u"{}: {}".format(metadata_name, metadata_value))
-
-        # Loop over the mentions of this entity in the input document.
-        # The API currently supports proper noun mentions.
-        if debug:
-            for mention in entity.mentions:
-                print(u"Mention text: {}".format(mention.text.content))
-                # Get the mention type, e.g. PROPER for proper noun
-                print(
-                    u"Mention type: {}".format(language.EntityMention.Type(mention.type_).name)
-                )
-        output.append(item)
-    
-    # Get the language of the text, which will be the same as
-    # the language specified in the request or, if not specified,
-    # the automatically-detected language.
-    if debug:
-        print(u"Language of the text: {}".format(response.language))
-    
-    return(output)
 
 if __name__ == "__main__":
     # This is used when running locally. Gunicorn is used to run the
