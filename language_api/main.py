@@ -5,7 +5,7 @@ from text_classify import classify_result
 from text_entities import analyze_entities
 from flask import Flask, redirect, render_template, request
 import json
-
+import matplotlib.pyplot as plt
 from google.cloud import datastore
 from google.cloud import language_v1 as language
 
