@@ -29,9 +29,15 @@ def homepage():
 
 @app.route("/topics", methods=["GET", "POST"])
 def extract_topics():
-    text = request.form["text"]
-    classification_df = classify_result(text)
-    classification_df.plot(kind='bar', y='Confidence', x='Category')
+    if request.method == 'POST':
+        text = request.json['text']
+        return json.dumps(classify_result(text).to_dict(orient='records'))
+    else:
+        text = request.args["text"]
+        return json.dumps(classify_result(text).to_dict(orient='records'))
+    #
+    # classification_df = classify_result(text)
+    # classification_df.plot(kind='bar', y='Confidence', x='Category')
 
 
 @app.route("/upload", methods=["GET", "POST"])
