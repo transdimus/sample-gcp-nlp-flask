@@ -14,6 +14,12 @@
       <p>Text: {{text_entity['text']}}</p>
       <p>Uploaded: {{text_entity['timestamp']}}</p>
       <p>Overall Sentiment: {{text_entity['sentiment']}}</p>
+      <br/>
+      <p><strong>English Text:</strong> {{text_entity['text_en']}}</p>
+      <p><strong>English Sentiment:</strong> {{text_entity['sentiment_en']}}</p>
+      <br/>
+      <p><strong>German Text:</strong> {{text_entity['text_de']}}</p>
+      <p><strong>German Sentiment:</strong> {{text_entity['sentiment_de']}}</p>
     {% endfor %}
   </body>
 </html> 

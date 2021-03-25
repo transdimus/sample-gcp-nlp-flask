@@ -8,6 +8,7 @@ import json
 import matplotlib.pyplot as plt
 from google.cloud import datastore
 from google.cloud import language_v1 as language
+from google.cloud import translate_v3 as translate
 
 app = Flask(__name__)
 
@@ -90,6 +91,10 @@ def upload_text():
     entity["text"] = text
     entity["timestamp"] = current_datetime
     entity["sentiment"] = overall_sentiment
+    entity["text_en"] = ""
+    entity["sentiment_en"] = ""
+    entity["text_de"] = ""
+    entity["sentiment_de"] = ""
     # entity["classification"] =
     # Save the new entity to Datastore.
     datastore_client.put(entity)
@@ -97,6 +102,53 @@ def upload_text():
     # Redirect to the home page.
     return redirect("/")
 
+@app.route("/translate", methods=["GET", "POST"])
+def translate_sentences():
+    # Enrich latest document in database with eng/rus translations
+    datastore_client = datastore.Client()
+    kind = "Sentences"
+    query = datastore_client.query(kind=kind)
+    text_entities = list(query.fetch())
+    key = datastore_client.key(kind, 'sample_task')
+    entity = datastore.Entity(key)
+    location = "global"
+    parent = f"projects/reflected-flux-308118/locations/{location}"
+    for text_entity in text_entities:
+        entity["text"] = text_entity["text"]
+        entity["timestamp"] = text_entity["timestamp"]
+        entity["sentiment"] = text_entity["sentiment"]
+        translate_client = translate.TranslationServiceClient()
+        response = translate_client.translate_text(
+            contents=[entity["text"]],
+            target_language_code="en",
+            parent=parent,
+        )
+        entity["text_en"] = response.translations[0].translated_text
+        sentiment = analyze_text_sentiment(entity["text_en"])[0].get('sentiment score')
+        entity["sentiment_en"] = 'unknown'
+        if sentiment > 0:
+            entity["sentiment_en"] = 'positive'
+        if sentiment < 0:
+            entity["sentiment_en"] = 'negative'
+        if sentiment == 0:
+            entity["sentiment_en"] = 'neutral'
+        translate_client = translate.TranslationServiceClient()
+        response = translate_client.translate_text(
+            contents=[entity["text"]],
+            target_language_code="de",
+            parent=parent,
+        )
+        entity["text_de"] = response.translations[0].translated_text
+        sentiment = analyze_text_sentiment(entity["text_de"])[0].get('sentiment score')
+        entity["sentiment_de"] = 'unknown'
+        if sentiment > 0:
+            entity["sentiment_de"] = 'positive'
+        if sentiment < 0:
+            entity["sentiment_de"] = 'negative'
+        if sentiment == 0:
+            entity["sentiment_de"] = 'neutral'
+    datastore_client.put(entity)
+    return entity
 
 @app.errorhandler(500)
 def server_error(e):
