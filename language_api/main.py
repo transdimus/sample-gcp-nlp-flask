@@ -27,6 +27,13 @@ def homepage():
     return render_template("homepage.html", text_entities=text_entities)
 
 
+@app.route("/topics", methods=["GET", "POST"])
+def extract_topics():
+    text = request.form["text"]
+    classification_df = classify_result(text)
+    classification_df.plot(kind='bar', y='Confidence', x='Category')
+
+
 @app.route("/upload", methods=["GET", "POST"])
 def upload_text():
     text = request.form["text"]
