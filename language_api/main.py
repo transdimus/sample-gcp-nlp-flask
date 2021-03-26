@@ -39,7 +39,7 @@ def extract_topics():
 
 
 @app.route("/topict", methods=["GET", "POST"])
-def extract_topics():
+def extract_topict():
     if request.method == 'POST':
         text = request.json['text']
         return json.dumps(classify_result(text).to_dict(orient='records'))
