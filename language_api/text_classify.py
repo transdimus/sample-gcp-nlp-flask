@@ -28,7 +28,6 @@ def classify_text(text_string):
 
 
 def classify_result(text, sentence):
-
     # If sentence == 0, go for the whole text else break into sentences
 
     # Empty List to append results
@@ -48,7 +47,6 @@ def classify_result(text, sentence):
             # A line can contain multiple classifications, list all of them with confidence score
             i = 0
             while len(class_list) > i:
-
                 # If multiple subcategories, Extract the deepest category
                 clas = class_list[i].split('/')
                 class_result.append(clas[len(clas) - 1])
@@ -56,8 +54,16 @@ def classify_result(text, sentence):
                 i += 1
     else:
         class_list, conf_list = classify_text(text)
-        clas = class_list[i].split('/')
-        class_result.append(clas[len(clas) - 1])
+
+        i = 0
+        if len(class_list) > 0:
+
+            while len(class_list) > i:
+                clas = class_list[i].split('/')
+
+                class_result.append(clas[len(clas) - 1])
+                confi_result.append(conf_list[i])
+                i += 1
 
     # Consolidate result into a dataframe
     result_df = pd.DataFrame({'Category': class_result, 'Confidence': confi_result})
