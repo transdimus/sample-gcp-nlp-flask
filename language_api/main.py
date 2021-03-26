@@ -42,10 +42,10 @@ def extract_topics():
 def extract_topict():
     if request.method == 'POST':
         text = request.json['text']
-        return json.dumps(classify_result(text).to_dict(orient='records'))
+        return json.dumps(classify_result(text, 0).to_dict(orient='records'))
     else:
         text = request.args["text"]
-        return json.dumps(classify_result(text).to_dict(orient='records'))
+        return json.dumps(classify_result(text, 0).to_dict(orient='records'))
 
 
 
