@@ -27,31 +27,37 @@ def classify_text(text_string):
     return class_list, conf_list
 
 
-def classify_result(text):
+def classify_result(text, sentence):
 
-    # Split input string into lines
-    lines = text.split('.')
+    # If sentence == 0, go for the whole text else break into sentences
 
     # Empty List to append results
     class_result = []
     confi_result = []
 
-    # For each line of input text, derive classification and confidence score
+    # Split input string into lines
+    if sentence == 1:
+        lines = text.split('.')
 
-    for line in lines:
+        # For each line of input text, derive classification and confidence score
+        for line in lines:
 
-        class_list, conf_list = classify_text(line)
-        #     print(class_list, conf_list)
+            class_list, conf_list = classify_text(line)
+            #     print(class_list, conf_list)
 
-        # A line can contain multiple classifications, list all of them with confidence score
-        i = 0
-        while len(class_list) > i:
+            # A line can contain multiple classifications, list all of them with confidence score
+            i = 0
+            while len(class_list) > i:
 
-            # If multiple subcategories, Extract the deepest category
-            clas = class_list[i].split('/')
-            class_result.append(clas[len(clas) - 1])
-            confi_result.append(conf_list[i])
-            i += 1
+                # If multiple subcategories, Extract the deepest category
+                clas = class_list[i].split('/')
+                class_result.append(clas[len(clas) - 1])
+                confi_result.append(conf_list[i])
+                i += 1
+    else:
+        class_list, conf_list = classify_text(text)
+        clas = class_list[i].split('/')
+        class_result.append(clas[len(clas) - 1])
 
     # Consolidate result into a dataframe
     result_df = pd.DataFrame({'Category': class_result, 'Confidence': confi_result})
